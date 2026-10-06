@@ -8,6 +8,7 @@ import TodoItem from "./components/TodoItem";
 function App() {
   const [todos, setTodos] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -86,8 +87,25 @@ function App() {
     }
   }
 
+  function handleFilter(nextFilter) {
+    setFilter(nextFilter);
+    setCurrentPage(1);
+  }
+
   // Only the todos that match the selected filter
   const filteredTodos = todos.filter(FILTERS[filter].test);
+  const todosPerPage = 10;
+  const totalPages = Math.ceil(filteredTodos.length / todosPerPage);
+  const startIndex = (currentPage - 1) * todosPerPage;
+  const endIndex = startIndex + todosPerPage;
+  const paginatedTodos = filteredTodos.slice(startIndex, endIndex);
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   // "1 task" or "3 tasks"
   const taskWord = filteredTodos.length === 1 ? "task" : "tasks";
@@ -113,16 +131,34 @@ function App() {
     }
 
     return (
-      <ul className="todo-list">
-        {filteredTodos.map((todo) => (
-          <TodoItem
-            key={todo._id}
-            todo={todo}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-          />
-        ))}
-      </ul>
+      <>
+        <ul className="todo-list">
+          {paginatedTodos.map((todo) => (
+            <TodoItem
+              key={todo._id}
+              todo={todo}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          ))}
+        </ul>
+
+        {totalPages > 1 && (
+          <div className="pagination" aria-label="Todo pages">
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                className={page === currentPage ? "active" : ""}
+                onClick={() => setCurrentPage(page)}
+                aria-label={`Go to page ${page}`}
+                aria-current={page === currentPage ? "page" : undefined}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+        )}
+      </>
     );
   }
 
@@ -131,7 +167,7 @@ function App() {
       <Sidebar
         todos={todos}
         filter={filter}
-        onFilter={setFilter}
+        onFilter={handleFilter}
         onClearDone={handleClearDone}
       />
 
